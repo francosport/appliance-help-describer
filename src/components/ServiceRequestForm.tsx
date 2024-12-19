@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import PersonalInfoSection from "./form-sections/PersonalInfoSection";
 import ContactInfoSection from "./form-sections/ContactInfoSection";
 import ApplianceInfoSection from "./form-sections/ApplianceInfoSection";
@@ -33,6 +34,7 @@ const ServiceRequestForm = () => {
   });
 
   const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -55,10 +57,50 @@ const ServiceRequestForm = () => {
     setAddressSuggestions([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    toast.success("Service request submitted successfully!");
+    setIsSubmitting(true);
+
+    try {
+      // Map form data to Supabase table structure
+      const supabaseData = {
+        F_Name: formData.firstName,
+        L_Name: formData.lastName,
+        Mobile: parseFloat(formData.mobilePhone) || null,
+        Work: parseFloat(formData.homePhone) || null,
+        "Other Phone": parseFloat(formData.otherPhone) || null,
+        "Email 1": formData.email,
+        Address: formData.address,
+        "Appliance Type": formData.applianceType,
+        "Appliance Issue": formData.problem,
+      };
+
+      const { error } = await supabase
+        .from("intake-test-customers")
+        .insert([supabaseData]);
+
+      if (error) throw error;
+
+      toast.success("Service request submitted successfully!");
+      
+      // Reset form after successful submission
+      setFormData({
+        firstName: "",
+        lastName: "",
+        mobilePhone: "",
+        homePhone: "",
+        otherPhone: "",
+        email: "",
+        address: "",
+        applianceType: "",
+        problem: "",
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Failed to submit service request. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -109,8 +151,9 @@ const ServiceRequestForm = () => {
             <Button
               type="submit"
               className="w-full bg-form-600 hover:bg-form-700 text-white transition-all duration-200"
+              disabled={isSubmitting}
             >
-              Submit Request
+              {isSubmitting ? "Submitting..." : "Submit Request"}
             </Button>
           </div>
         </form>
