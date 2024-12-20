@@ -15,10 +15,11 @@ export type Database = {
           "Appliance Issue": string | null
           "Appliance Type": string | null
           Created: string
-          CxID: string
+          CxID: string | null
           "Email 1": string | null
           "Email 2": string | null
           F_Name: string | null
+          id: number
           L_Name: string | null
           Mobile: number | null
           Modified: string | null
@@ -30,10 +31,11 @@ export type Database = {
           "Appliance Issue"?: string | null
           "Appliance Type"?: string | null
           Created?: string
-          CxID?: string
+          CxID?: string | null
           "Email 1"?: string | null
           "Email 2"?: string | null
           F_Name?: string | null
+          id?: number
           L_Name?: string | null
           Mobile?: number | null
           Modified?: string | null
@@ -45,10 +47,11 @@ export type Database = {
           "Appliance Issue"?: string | null
           "Appliance Type"?: string | null
           Created?: string
-          CxID?: string
+          CxID?: string | null
           "Email 1"?: string | null
           "Email 2"?: string | null
           F_Name?: string | null
+          id?: number
           L_Name?: string | null
           Mobile?: number | null
           Modified?: string | null
