@@ -8,29 +8,34 @@ interface AddressAutocompleteProps {
 }
 
 const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
-  const [apiKey, setApiKey] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     const loadGooglePlaces = async () => {
       try {
-        const { data: { secret }, error } = await supabase.rpc('get_secret', {
+        const { data, error } = await supabase.rpc('get_secret', {
           name: 'GOOGLE_PLACES_API_KEY'
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching API key:', error);
+          return;
+        }
         
-        if (secret) {
-          setApiKey(secret);
+        if (data) {
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${secret}&libraries=places`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${data}&libraries=places`;
           script.async = true;
           script.onload = initAutocomplete;
+          script.onerror = () => console.error('Failed to load Google Places script');
           document.head.appendChild(script);
         }
       } catch (error) {
         console.error('Error loading Google Places:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -38,7 +43,9 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
   }, []);
 
   const initAutocomplete = () => {
-    if (inputRef.current && window.google) {
+    if (!inputRef.current || !window.google) return;
+
+    try {
       autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
         componentRestrictions: { country: 'us' }
@@ -50,6 +57,8 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
           onChange(place.formatted_address);
         }
       });
+    } catch (error) {
+      console.error('Error initializing Google Places Autocomplete:', error);
     }
   };
 
@@ -63,7 +72,8 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full min-h-[40px] rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        placeholder="Enter your address"
+        placeholder={isLoading ? "Loading..." : "Enter your address"}
+        disabled={isLoading}
         required
       />
     </div>
