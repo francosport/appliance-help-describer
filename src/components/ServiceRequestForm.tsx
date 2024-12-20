@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PersonalInfoSection from "./form-sections/PersonalInfoSection";
 import ContactInfoSection from "./form-sections/ContactInfoSection";
 import ApplianceInfoSection from "./form-sections/ApplianceInfoSection";
+import AddressAutocomplete from "./address/AddressAutocomplete";
 
 interface FormData {
   firstName: string;
@@ -33,7 +34,6 @@ const ServiceRequestForm = () => {
     problem: "",
   });
 
-  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (
@@ -41,20 +41,10 @@ const ServiceRequestForm = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (name === "address" && value.length > 3) {
-      const mockSuggestions = [
-        value + " Street, City",
-        value + " Avenue, City",
-        value + " Road, City",
-      ];
-      setAddressSuggestions(mockSuggestions);
-    }
   };
 
-  const handleAddressSelect = (address: string) => {
+  const handleAddressChange = (address: string) => {
     setFormData((prev) => ({ ...prev, address }));
-    setAddressSuggestions([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +52,6 @@ const ServiceRequestForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Map form data to Supabase table structure
       const supabaseData = {
         F_Name: formData.firstName,
         L_Name: formData.lastName,
@@ -83,7 +72,6 @@ const ServiceRequestForm = () => {
 
       toast.success("Service request submitted successfully!");
       
-      // Reset form after successful submission
       setFormData({
         firstName: "",
         lastName: "",
@@ -133,13 +121,17 @@ const ServiceRequestForm = () => {
 
           <div className="space-y-6">
             <h3 className="text-lg font-semibold">Service Details</h3>
+            <AddressAutocomplete
+              value={formData.address}
+              onChange={handleAddressChange}
+            />
             <ApplianceInfoSection
               address={formData.address}
-              addressSuggestions={addressSuggestions}
+              addressSuggestions={[]}
               applianceType={formData.applianceType}
               problem={formData.problem}
               onAddressChange={handleInputChange}
-              onAddressSelect={handleAddressSelect}
+              onAddressSelect={() => {}}
               onApplianceTypeChange={(value) =>
                 setFormData((prev) => ({ ...prev, applianceType: value }))
               }
