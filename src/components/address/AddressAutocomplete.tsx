@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 interface AddressAutocompleteProps {
   value: string;
@@ -9,37 +10,66 @@ interface AddressAutocompleteProps {
 
 const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     const loadGooglePlaces = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_secret', {
+        const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
         
-        if (error) {
-          console.error('Error fetching API key:', error);
+        if (secretError) {
+          console.error('Error fetching API key:', secretError);
+          setError('Failed to load address autocomplete service');
+          setIsLoading(false);
           return;
         }
         
-        if (data) {
-          const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${data}&libraries=places`;
-          script.async = true;
-          script.onload = initAutocomplete;
-          script.onerror = () => console.error('Failed to load Google Places script');
-          document.head.appendChild(script);
+        if (!apiKey) {
+          setError('Google Places API key not configured');
+          setIsLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error('Error loading Google Places:', error);
-      } finally {
+
+        // Remove any existing Google Maps scripts
+        const existingScript = document.getElementById('google-maps-script');
+        if (existingScript) {
+          existingScript.remove();
+        }
+
+        // Create and load the new script
+        const script = document.createElement('script');
+        script.id = 'google-maps-script';
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = () => {
+          initAutocomplete();
+          setIsLoading(false);
+        };
+        script.onerror = () => {
+          setError('Failed to load Google Maps service');
+          setIsLoading(false);
+        };
+        document.head.appendChild(script);
+      } catch (err) {
+        console.error('Error loading Google Places:', err);
+        setError('Failed to initialize address autocomplete');
         setIsLoading(false);
       }
     };
 
     loadGooglePlaces();
+
+    return () => {
+      // Cleanup function to remove the script when component unmounts
+      const script = document.getElementById('google-maps-script');
+      if (script) {
+        script.remove();
+      }
+    };
   }, []);
 
   const initAutocomplete = () => {
@@ -48,7 +78,8 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
     try {
       autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
-        componentRestrictions: { country: 'us' }
+        componentRestrictions: { country: 'us' },
+        fields: ['formatted_address', 'address_components']
       });
 
       autocompleteRef.current.addListener('place_changed', () => {
@@ -59,23 +90,27 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
       });
     } catch (error) {
       console.error('Error initializing Google Places Autocomplete:', error);
+      setError('Failed to initialize address autocomplete');
     }
   };
 
   return (
     <div className="space-y-2">
       <Label htmlFor="address">Address</Label>
-      <input
+      <Input
         ref={inputRef}
         id="address"
         name="address"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full min-h-[40px] rounded-md border border-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         placeholder={isLoading ? "Loading..." : "Enter your address"}
         disabled={isLoading}
+        className={error ? "border-red-500" : ""}
         required
       />
+      {error && (
+        <p className="text-sm text-red-500">{error}</p>
+      )}
     </div>
   );
 };
