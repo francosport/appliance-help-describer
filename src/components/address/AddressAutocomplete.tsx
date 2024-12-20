@@ -16,7 +16,7 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
     const loadGooglePlaces = async () => {
       try {
         const { data, error } = await supabase.rpc('get_secret', {
-          name: 'GOOGLE_PLACES_API_KEY'
+          secret_name: 'GOOGLE_PLACES_API_KEY'
         });
         
         if (error) {
