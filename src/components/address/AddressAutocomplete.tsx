@@ -14,6 +14,7 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const scriptLoadedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -40,12 +41,15 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
         });
       } catch (error) {
         console.error('Error initializing autocomplete:', error);
-        throw new Error('Failed to initialize address lookup');
+        if (isMounted) {
+          setError('Failed to initialize address lookup');
+          toast.error('Failed to initialize address lookup service');
+        }
       }
     };
 
     const loadGoogleMapsScript = async () => {
-      if (!isMounted) return;
+      if (!isMounted || scriptLoadedRef.current) return;
       
       try {
         setIsLoading(true);
@@ -55,8 +59,13 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
-        if (secretError || !apiKey) {
+        if (secretError) {
+          console.error('Error fetching API key:', secretError);
           throw new Error('Failed to load API key');
+        }
+
+        if (!apiKey) {
+          throw new Error('Google Places API key not found');
         }
 
         if (window.google?.maps) {
@@ -78,6 +87,7 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
 
         script.onload = () => {
           if (isMounted) {
+            scriptLoadedRef.current = true;
             initializeAutocomplete()
               .catch((error) => {
                 console.error('Error initializing autocomplete:', error);
