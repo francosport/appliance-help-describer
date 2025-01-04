@@ -18,78 +18,10 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadGoogleMapsScript = async () => {
-      if (!isMounted) return;
-      
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Get API key from Supabase
-        const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
-          secret_name: 'GOOGLE_PLACES_API_KEY'
-        });
-
-        if (secretError) {
-          console.error('Error fetching API key:', secretError);
-          throw new Error('Failed to load API key');
-        }
-
-        if (!apiKey) {
-          console.error('No API key found');
-          throw new Error('Google Places API key not found');
-        }
-
-        // Check if script is already loaded
-        if (window.google?.maps) {
-          await initializeAutocomplete();
-          return;
-        }
-
-        // Load Google Maps script
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-
-        script.onerror = () => {
-          if (isMounted) {
-            setError('Failed to load Google Maps script');
-            toast.error('Failed to load address lookup service');
-          }
-        };
-
-        script.onload = async () => {
-          if (isMounted) {
-            try {
-              await initializeAutocomplete();
-            } catch (error) {
-              console.error('Error initializing autocomplete:', error);
-              setError('Failed to initialize address lookup');
-              toast.error('Failed to initialize address lookup service');
-            }
-          }
-        };
-
-        document.head.appendChild(script);
-      } catch (err) {
-        console.error('Error loading Google Maps:', err);
-        if (isMounted) {
-          setError('Failed to initialize address lookup');
-          toast.error('Failed to load address lookup service. Please try again later.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
     const initializeAutocomplete = async () => {
       if (!inputRef.current || !window.google?.maps?.places) return;
 
       try {
-        // Clean up previous instance if it exists
         if (autocompleteRef.current) {
           google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
@@ -112,6 +44,63 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
       }
     };
 
+    const loadGoogleMapsScript = async () => {
+      if (!isMounted) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
+          secret_name: 'GOOGLE_PLACES_API_KEY'
+        });
+
+        if (secretError || !apiKey) {
+          throw new Error('Failed to load API key');
+        }
+
+        if (window.google?.maps) {
+          await initializeAutocomplete();
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+
+        script.onerror = () => {
+          if (isMounted) {
+            setError('Failed to load Google Maps script');
+            toast.error('Failed to load address lookup service');
+          }
+        };
+
+        script.onload = () => {
+          if (isMounted) {
+            initializeAutocomplete()
+              .catch((error) => {
+                console.error('Error initializing autocomplete:', error);
+                setError('Failed to initialize address lookup');
+                toast.error('Failed to initialize address lookup service');
+              });
+          }
+        };
+
+        document.head.appendChild(script);
+      } catch (err) {
+        console.error('Error loading Google Maps:', err);
+        if (isMounted) {
+          setError('Failed to initialize address lookup');
+          toast.error('Failed to load address lookup service. Please try again later.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
     loadGoogleMapsScript();
 
     return () => {
@@ -120,7 +109,7 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
-  }, []); // Empty dependency array since we only want to load once
+  }, [onChange]);
 
   return (
     <div className="space-y-2">
