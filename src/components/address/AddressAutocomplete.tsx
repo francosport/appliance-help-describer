@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AddressAutocompleteProps {
   value: string;
@@ -15,7 +16,11 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadGoogleMapsScript = async () => {
+      if (!isMounted) return;
+      
       try {
         setIsLoading(true);
         setError(null);
@@ -25,13 +30,19 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
-        if (secretError || !apiKey) {
+        if (secretError) {
+          console.error('Error fetching API key:', secretError);
           throw new Error('Failed to load API key');
+        }
+
+        if (!apiKey) {
+          console.error('No API key found');
+          throw new Error('Google Places API key not found');
         }
 
         // Check if script is already loaded
         if (window.google?.maps) {
-          initializeAutocomplete();
+          await initializeAutocomplete();
           return;
         }
 
@@ -41,32 +52,39 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
         script.async = true;
         script.defer = true;
 
-        script.onload = () => {
-          initializeAutocomplete();
-        };
-
-        script.onerror = () => {
-          setError('Failed to load Google Maps');
-          setIsLoading(false);
-        };
+        const loadPromise = new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Failed to load Google Maps script'));
+        });
 
         document.head.appendChild(script);
+        await loadPromise;
+        
+        if (isMounted) {
+          await initializeAutocomplete();
+        }
       } catch (err) {
         console.error('Error loading Google Maps:', err);
-        setError('Failed to initialize address lookup');
-        setIsLoading(false);
+        if (isMounted) {
+          setError('Failed to initialize address lookup');
+          toast.error('Failed to load address lookup service. Please try again later.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    const initializeAutocomplete = () => {
+    const initializeAutocomplete = async () => {
       if (!inputRef.current || !window.google?.maps?.places) return;
 
-      // Clean up previous instance if it exists
-      if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      }
-
       try {
+        // Clean up previous instance if it exists
+        if (autocompleteRef.current) {
+          google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        }
+
         autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
           types: ['address'],
           componentRestrictions: { country: 'us' },
@@ -79,19 +97,16 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
             onChange(place.formatted_address);
           }
         });
-
-        setIsLoading(false);
       } catch (error) {
         console.error('Error initializing autocomplete:', error);
-        setError('Failed to initialize address lookup');
-        setIsLoading(false);
+        throw new Error('Failed to initialize address lookup');
       }
     };
 
     loadGoogleMapsScript();
 
-    // Cleanup function
     return () => {
+      isMounted = false;
       if (autocompleteRef.current) {
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
@@ -107,7 +122,7 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
         name="address"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={isLoading ? "Loading..." : "Start typing your address"}
+        placeholder={isLoading ? "Loading address service..." : "Start typing your address"}
         disabled={isLoading}
         className={error ? "border-red-500" : ""}
         required
