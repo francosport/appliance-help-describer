@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import PersonalInfoSection from "../form-sections/PersonalInfoSection";
 import ContactInfoSection from "../form-sections/ContactInfoSection";
-import ApplianceInfoSection from "../form-sections/ApplianceInfoSection";
 import AddressAutocomplete from "../address/AddressAutocomplete";
 import useFormData from "@/hooks/useFormData";
 
@@ -38,8 +37,6 @@ const FormContainer = () => {
           "Other Phone": parseFloat(formData.otherPhone) || null,
           "Email 1": formData.email,
           Address: formData.address,
-          "Appliance Type": formData.applianceType,
-          "Appliance Issue": formData.problem,
         }]);
 
       if (error) throw error;
@@ -81,14 +78,6 @@ const FormContainer = () => {
         <AddressAutocomplete
           value={formData.address}
           onChange={handleAddressChange}
-        />
-        <ApplianceInfoSection
-          applianceType={formData.applianceType}
-          problem={formData.problem}
-          onApplianceTypeChange={(value) =>
-            setFormData((prev) => ({ ...prev, applianceType: value }))
-          }
-          onProblemChange={handleInputChange}
         />
       </div>
 

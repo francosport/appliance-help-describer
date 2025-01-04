@@ -8,8 +8,6 @@ interface FormData {
   otherPhone: string;
   email: string;
   address: string;
-  applianceType: string;
-  problem: string;
 }
 
 const initialFormData: FormData = {
@@ -20,8 +18,6 @@ const initialFormData: FormData = {
   otherPhone: "",
   email: "",
   address: "",
-  applianceType: "",
-  problem: "",
 };
 
 const useFormData = () => {
