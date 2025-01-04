@@ -8,12 +8,8 @@ import {
 } from "@/components/ui/select";
 
 interface ApplianceInfoProps {
-  address: string;
-  addressSuggestions: string[];
   applianceType: string;
   problem: string;
-  onAddressChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onAddressSelect: (address: string) => void;
   onApplianceTypeChange: (value: string) => void;
   onProblemChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
 }

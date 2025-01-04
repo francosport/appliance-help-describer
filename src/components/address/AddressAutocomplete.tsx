@@ -52,17 +52,26 @@ const AddressAutocomplete = ({ value, onChange }: AddressAutocompleteProps) => {
         script.async = true;
         script.defer = true;
 
-        const loadPromise = new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = () => reject(new Error('Failed to load Google Maps script'));
-        });
+        script.onerror = () => {
+          if (isMounted) {
+            setError('Failed to load Google Maps script');
+            toast.error('Failed to load address lookup service');
+          }
+        };
+
+        script.onload = async () => {
+          if (isMounted) {
+            try {
+              await initializeAutocomplete();
+            } catch (error) {
+              console.error('Error initializing autocomplete:', error);
+              setError('Failed to initialize address lookup');
+              toast.error('Failed to initialize address lookup service');
+            }
+          }
+        };
 
         document.head.appendChild(script);
-        await loadPromise;
-        
-        if (isMounted) {
-          await initializeAutocomplete();
-        }
       } catch (err) {
         console.error('Error loading Google Maps:', err);
         if (isMounted) {

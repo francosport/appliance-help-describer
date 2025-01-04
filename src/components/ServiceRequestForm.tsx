@@ -126,12 +126,8 @@ const ServiceRequestForm = () => {
               onChange={handleAddressChange}
             />
             <ApplianceInfoSection
-              address={formData.address}
-              addressSuggestions={[]}
               applianceType={formData.applianceType}
               problem={formData.problem}
-              onAddressChange={handleInputChange}
-              onAddressSelect={() => {}}
               onApplianceTypeChange={(value) =>
                 setFormData((prev) => ({ ...prev, applianceType: value }))
               }
