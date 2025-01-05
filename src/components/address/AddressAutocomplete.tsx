@@ -19,7 +19,10 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const scriptLoadedRef = useRef(false);
 
   const initializeAutocomplete = () => {
-    if (!inputRef.current) return;
+    if (!inputRef.current) {
+      console.error("Input ref is not available");
+      return;
+    }
 
     try {
       console.log("Initializing autocomplete...");
@@ -37,6 +40,8 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         console.log("Place selected:", place);
         if (place?.formatted_address) {
           onChange(place.formatted_address);
+        } else {
+          console.warn("No formatted address found in place object");
         }
       });
 
@@ -53,7 +58,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const loadGoogleMapsScript = async () => {
     try {
       console.log("Fetching API key...");
-      const { data, error: secretError } = await supabase.rpc('get_secret', {
+      const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
         secret_name: 'GOOGLE_PLACES_API_KEY'
       });
 
@@ -61,12 +66,11 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         console.error("Error fetching API key:", secretError);
         throw new Error(secretError.message);
       }
-      if (!data) {
+      if (!apiKey) {
         console.error("No API key found");
         throw new Error('Google Places API key not found');
       }
 
-      const apiKey = data;
       console.log("API key retrieved successfully");
       
       if (typeof window.google === "undefined") {
@@ -101,6 +105,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   };
 
   useEffect(() => {
+    console.log("AddressAutocomplete component mounted");
     if (!scriptLoadedRef.current) {
       loadGoogleMapsScript();
     }
