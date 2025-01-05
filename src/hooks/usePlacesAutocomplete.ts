@@ -14,10 +14,13 @@ export const usePlacesAutocomplete = ({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    if (!isScriptLoaded || !inputRef.current) return;
+    if (!isScriptLoaded || !inputRef.current) {
+      console.log("Script not loaded or input ref not ready", { isScriptLoaded, hasInputRef: !!inputRef.current });
+      return;
+    }
 
     try {
-      console.log("Initializing autocomplete...");
+      console.log("Initializing Places Autocomplete...");
       const options = {
         types: ["address"],
         componentRestrictions: { country: "us" },
@@ -29,6 +32,8 @@ export const usePlacesAutocomplete = ({
         options
       );
 
+      console.log("Places Autocomplete initialized successfully");
+
       autocompleteRef.current.addListener("place_changed", () => {
         const place = autocompleteRef.current?.getPlace();
         console.log("Place selected:", place);
@@ -39,9 +44,8 @@ export const usePlacesAutocomplete = ({
         }
       });
 
-      console.log("Autocomplete initialized successfully");
     } catch (err) {
-      console.error("Error initializing autocomplete:", err);
+      console.error("Error initializing Places Autocomplete:", err);
     }
 
     return () => {

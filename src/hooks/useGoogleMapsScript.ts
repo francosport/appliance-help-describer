@@ -11,11 +11,13 @@ export const useGoogleMapsScript = () => {
       try {
         // Check if script is already loaded
         if (typeof window.google !== "undefined") {
+          console.log("Google Maps script already loaded");
           setIsScriptLoaded(true);
           setIsLoading(false);
           return;
         }
 
+        console.log("Fetching Google Places API key...");
         // Fetch API key using the get_secret function
         const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
@@ -27,8 +29,11 @@ export const useGoogleMapsScript = () => {
         }
 
         if (!apiKey) {
+          console.error("No API key returned from get_secret");
           throw new Error("Google Places API key not found");
         }
+
+        console.log("Successfully retrieved API key");
 
         // Create and append script
         const script = document.createElement("script");
@@ -49,6 +54,7 @@ export const useGoogleMapsScript = () => {
           setIsLoading(false);
         };
 
+        console.log("Appending Google Maps script to document head");
         document.head.appendChild(script);
       } catch (err) {
         console.error("Error in Google Maps script loading:", err);
