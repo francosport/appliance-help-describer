@@ -26,13 +26,15 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
     try {
       console.log("Initializing autocomplete...");
+      const options = {
+        types: ["address"],
+        componentRestrictions: { country: "us" },
+        fields: ["formatted_address", "address_components"]
+      };
+
       autocompleteRef.current = new google.maps.places.Autocomplete(
         inputRef.current,
-        { 
-          types: ["address"],
-          componentRestrictions: { country: "us" },
-          fields: ["formatted_address", "address_components"]
-        }
+        options
       );
 
       autocompleteRef.current.addListener("place_changed", () => {
@@ -66,6 +68,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         console.error("Error fetching API key:", secretError);
         throw new Error(secretError.message);
       }
+
       if (!apiKey) {
         console.error("No API key found");
         throw new Error('Google Places API key not found');
