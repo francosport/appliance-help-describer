@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { useGoogleMapsScript } from "@/hooks/useGoogleMapsScript";
+import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 
 interface AddressAutocompleteProps {
   value: string;
@@ -12,113 +13,14 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   value,
   onChange,
 }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const scriptLoadedRef = useRef(false);
+  const { isLoading, error, isScriptLoaded } = useGoogleMapsScript();
 
-  const initializeAutocomplete = () => {
-    if (!inputRef.current) {
-      console.error("Input ref is not available");
-      return;
-    }
-
-    try {
-      console.log("Initializing autocomplete...");
-      const options = {
-        types: ["address"],
-        componentRestrictions: { country: "us" },
-        fields: ["formatted_address", "address_components"]
-      };
-
-      autocompleteRef.current = new google.maps.places.Autocomplete(
-        inputRef.current,
-        options
-      );
-
-      autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current?.getPlace();
-        console.log("Place selected:", place);
-        if (place?.formatted_address) {
-          onChange(place.formatted_address);
-        } else {
-          console.warn("No formatted address found in place object");
-        }
-      });
-
-      setIsLoading(false);
-      setError(null);
-      console.log("Autocomplete initialized successfully");
-    } catch (err) {
-      console.error("Error initializing autocomplete:", err);
-      setError("Failed to initialize address autocomplete");
-      setIsLoading(false);
-    }
-  };
-
-  const loadGoogleMapsScript = async () => {
-    try {
-      console.log("Fetching API key...");
-      const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
-        secret_name: 'GOOGLE_PLACES_API_KEY'
-      });
-
-      if (secretError) {
-        console.error("Error fetching API key:", secretError);
-        throw new Error(secretError.message);
-      }
-
-      if (!apiKey) {
-        console.error("No API key found");
-        throw new Error('Google Places API key not found');
-      }
-
-      console.log("API key retrieved successfully");
-      
-      if (typeof window.google === "undefined") {
-        console.log("Loading Google Maps script...");
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-        script.async = true;
-        script.defer = true;
-        
-        script.onload = () => {
-          console.log("Google Maps script loaded successfully");
-          scriptLoadedRef.current = true;
-          initializeAutocomplete();
-        };
-
-        script.onerror = (e) => {
-          console.error("Error loading Google Maps script:", e);
-          setError("Failed to load Google Maps");
-          setIsLoading(false);
-        };
-
-        document.head.appendChild(script);
-      } else {
-        console.log("Google Maps already loaded, initializing autocomplete...");
-        initializeAutocomplete();
-      }
-    } catch (err) {
-      console.error("Error in loadGoogleMapsScript:", err);
-      setError("Failed to load address autocomplete");
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    console.log("AddressAutocomplete component mounted");
-    if (!scriptLoadedRef.current) {
-      loadGoogleMapsScript();
-    }
-
-    return () => {
-      if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      }
-    };
-  }, []);
+  usePlacesAutocomplete({
+    inputRef,
+    onPlaceSelect: onChange,
+    isScriptLoaded,
+  });
 
   return (
     <div className="space-y-2">
