@@ -18,19 +18,20 @@ export const useGoogleMapsScript = () => {
         }
 
         console.log("[Places API] Starting to fetch API key...");
-        // Fetch API key using the get_secret function
+        
+        // Fetch API key using the get_secret function with detailed error logging
         const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
         if (secretError) {
           console.error("[Places API] Error fetching API key:", secretError);
-          throw new Error("Failed to fetch Google Places API key");
+          throw new Error(`Failed to fetch Google Places API key: ${secretError.message}`);
         }
 
         if (!apiKey) {
-          console.error("[Places API] No API key returned");
-          throw new Error("Google Places API key not found");
+          console.error("[Places API] API key is empty or undefined");
+          throw new Error("Google Places API key is empty or undefined");
         }
 
         console.log("[Places API] Successfully retrieved API key");
@@ -50,22 +51,23 @@ export const useGoogleMapsScript = () => {
 
         script.onerror = (e) => {
           console.error("[Places API] Script failed to load:", e);
-          setError("Failed to load Google Maps");
+          setError("Failed to load Google Maps script");
           setIsLoading(false);
         };
 
-        console.log("[Places API] Appending script to document head");
         document.head.appendChild(script);
+        console.log("[Places API] Script tag added to document head");
+
       } catch (err) {
-        console.error("[Places API] Error in script loading:", err);
-        setError(err instanceof Error ? err.message : "Failed to load Google Maps");
+        const errorMessage = err instanceof Error ? err.message : "Failed to load Google Maps";
+        console.error("[Places API] Error in script loading:", errorMessage);
+        setError(errorMessage);
         setIsLoading(false);
       }
     };
 
     loadScript();
 
-    // Cleanup function
     return () => {
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
       if (existingScript) {
