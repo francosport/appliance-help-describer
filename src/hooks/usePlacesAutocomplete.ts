@@ -15,12 +15,15 @@ export const usePlacesAutocomplete = ({
 
   useEffect(() => {
     if (!isScriptLoaded || !inputRef.current) {
-      console.log("Script not loaded or input ref not ready", { isScriptLoaded, hasInputRef: !!inputRef.current });
+      console.log("[Places Autocomplete] Not ready:", { 
+        isScriptLoaded, 
+        hasInputRef: !!inputRef.current 
+      });
       return;
     }
 
     try {
-      console.log("Initializing Places Autocomplete...");
+      console.log("[Places Autocomplete] Initializing...");
       const options = {
         types: ["address"],
         componentRestrictions: { country: "us" },
@@ -32,24 +35,25 @@ export const usePlacesAutocomplete = ({
         options
       );
 
-      console.log("Places Autocomplete initialized successfully");
+      console.log("[Places Autocomplete] Successfully initialized");
 
       autocompleteRef.current.addListener("place_changed", () => {
         const place = autocompleteRef.current?.getPlace();
-        console.log("Place selected:", place);
+        console.log("[Places Autocomplete] Place selected:", place);
         if (place?.formatted_address) {
           onPlaceSelect(place.formatted_address);
         } else {
-          console.warn("No formatted address found in place object");
+          console.warn("[Places Autocomplete] No formatted address found in place object");
         }
       });
 
     } catch (err) {
-      console.error("Error initializing Places Autocomplete:", err);
+      console.error("[Places Autocomplete] Error initializing:", err);
     }
 
     return () => {
       if (autocompleteRef.current) {
+        console.log("[Places Autocomplete] Cleaning up listeners");
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };

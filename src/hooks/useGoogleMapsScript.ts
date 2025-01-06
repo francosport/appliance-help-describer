@@ -11,29 +11,29 @@ export const useGoogleMapsScript = () => {
       try {
         // Check if script is already loaded
         if (typeof window.google !== "undefined") {
-          console.log("Google Maps script already loaded");
+          console.log("[Places API] Script already loaded");
           setIsScriptLoaded(true);
           setIsLoading(false);
           return;
         }
 
-        console.log("Fetching Google Places API key...");
+        console.log("[Places API] Starting to fetch API key...");
         // Fetch API key using the get_secret function
         const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
         if (secretError) {
-          console.error("Error fetching Google Places API key:", secretError);
+          console.error("[Places API] Error fetching API key:", secretError);
           throw new Error("Failed to fetch Google Places API key");
         }
 
         if (!apiKey) {
-          console.error("No API key returned from get_secret");
+          console.error("[Places API] No API key returned");
           throw new Error("Google Places API key not found");
         }
 
-        console.log("Successfully retrieved API key");
+        console.log("[Places API] Successfully retrieved API key");
 
         // Create and append script
         const script = document.createElement("script");
@@ -43,21 +43,21 @@ export const useGoogleMapsScript = () => {
 
         // Set up load and error handlers
         script.onload = () => {
-          console.log("Google Maps script loaded successfully");
+          console.log("[Places API] Script loaded successfully");
           setIsScriptLoaded(true);
           setIsLoading(false);
         };
 
-        script.onerror = () => {
-          console.error("Failed to load Google Maps script");
+        script.onerror = (e) => {
+          console.error("[Places API] Script failed to load:", e);
           setError("Failed to load Google Maps");
           setIsLoading(false);
         };
 
-        console.log("Appending Google Maps script to document head");
+        console.log("[Places API] Appending script to document head");
         document.head.appendChild(script);
       } catch (err) {
-        console.error("Error in Google Maps script loading:", err);
+        console.error("[Places API] Error in script loading:", err);
         setError(err instanceof Error ? err.message : "Failed to load Google Maps");
         setIsLoading(false);
       }
@@ -69,6 +69,7 @@ export const useGoogleMapsScript = () => {
     return () => {
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
       if (existingScript) {
+        console.log("[Places API] Cleaning up existing script");
         existingScript.remove();
       }
     };
