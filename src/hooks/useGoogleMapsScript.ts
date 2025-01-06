@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useGoogleMapsScript = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -19,18 +20,20 @@ export const useGoogleMapsScript = () => {
 
         console.log("[Places API] Starting to fetch API key...");
         
-        // Fetch API key using the get_secret function with detailed error logging
+        // Fetch API key with detailed error logging
         const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
         if (secretError) {
           console.error("[Places API] Error fetching API key:", secretError);
+          toast.error("Failed to load address autocomplete. Please try again later.");
           throw new Error(`Failed to fetch Google Places API key: ${secretError.message}`);
         }
 
         if (!apiKey) {
           console.error("[Places API] API key is empty or undefined");
+          toast.error("Address autocomplete configuration error. Please try again later.");
           throw new Error("Google Places API key is empty or undefined");
         }
 
@@ -47,10 +50,12 @@ export const useGoogleMapsScript = () => {
           console.log("[Places API] Script loaded successfully");
           setIsScriptLoaded(true);
           setIsLoading(false);
+          toast.success("Address autocomplete is ready!");
         };
 
         script.onerror = (e) => {
           console.error("[Places API] Script failed to load:", e);
+          toast.error("Failed to load address autocomplete. Please try again later.");
           setError("Failed to load Google Maps script");
           setIsLoading(false);
         };
