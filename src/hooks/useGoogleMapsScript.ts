@@ -20,10 +20,28 @@ export const useGoogleMapsScript = () => {
 
         console.log("[Places API] Starting to fetch API key...");
         
-        // Fetch API key with detailed error logging
-        const { data: apiKeyResponse, error: secretError } = await supabase.rpc('get_secret', {
-          secret_name: 'GOOGLE_PLACES_API_KEY'
-        });
+        // Fetch API key with retries
+        let retries = 3;
+        let apiKeyResponse = null;
+        let secretError = null;
+
+        while (retries > 0 && !apiKeyResponse) {
+          const response = await supabase.rpc('get_secret', {
+            secret_name: 'GOOGLE_PLACES_API_KEY'
+          });
+          
+          if (response.data) {
+            apiKeyResponse = response.data;
+            break;
+          }
+          
+          secretError = response.error;
+          retries--;
+          if (retries > 0) {
+            console.log(`[Places API] Retrying API key fetch. Attempts remaining: ${retries}`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
 
         if (secretError) {
           console.error("[Places API] Error fetching API key:", secretError);
@@ -49,7 +67,6 @@ export const useGoogleMapsScript = () => {
         script.async = true;
         script.defer = true;
 
-        // Set up load and error handlers
         script.onload = () => {
           console.log("[Places API] Script loaded successfully");
           setIsScriptLoaded(true);
