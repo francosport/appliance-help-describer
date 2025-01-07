@@ -21,20 +21,24 @@ export const useGoogleMapsScript = () => {
         console.log("[Places API] Starting to fetch API key...");
         
         // Fetch API key with detailed error logging
-        const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
+        const { data: apiKeyResponse, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
         if (secretError) {
           console.error("[Places API] Error fetching API key:", secretError);
-          toast.error("Failed to load address autocomplete. Please try again later.");
           throw new Error(`Failed to fetch Google Places API key: ${secretError.message}`);
         }
 
-        if (!apiKey) {
-          console.error("[Places API] API key is empty or undefined");
-          toast.error("Address autocomplete configuration error. Please try again later.");
-          throw new Error("Google Places API key is empty or undefined");
+        if (!apiKeyResponse) {
+          console.error("[Places API] API key response is null");
+          throw new Error("Google Places API key not found in Supabase secrets");
+        }
+
+        const apiKey = apiKeyResponse as string;
+        if (!apiKey.trim()) {
+          console.error("[Places API] API key is empty");
+          throw new Error("Google Places API key is empty");
         }
 
         console.log("[Places API] Successfully retrieved API key");
@@ -55,9 +59,9 @@ export const useGoogleMapsScript = () => {
 
         script.onerror = (e) => {
           console.error("[Places API] Script failed to load:", e);
-          toast.error("Failed to load address autocomplete. Please try again later.");
           setError("Failed to load Google Maps script");
           setIsLoading(false);
+          toast.error("Failed to load address autocomplete");
         };
 
         document.head.appendChild(script);
@@ -68,6 +72,7 @@ export const useGoogleMapsScript = () => {
         console.error("[Places API] Error in script loading:", errorMessage);
         setError(errorMessage);
         setIsLoading(false);
+        toast.error(`Address autocomplete error: ${errorMessage}`);
       }
     };
 
