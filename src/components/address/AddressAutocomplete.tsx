@@ -36,8 +36,16 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         disabled={isLoading}
         required
       />
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      {isLoading && <p className="text-sm text-muted-foreground">Loading address autocomplete...</p>}
+      {error && (
+        <p className="text-red-500 text-sm">
+          Error: {error}
+        </p>
+      )}
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">
+          Loading address autocomplete...
+        </p>
+      )}
     </div>
   );
 };
