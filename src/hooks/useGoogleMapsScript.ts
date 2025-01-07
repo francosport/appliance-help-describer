@@ -20,43 +20,18 @@ export const useGoogleMapsScript = () => {
 
         console.log("[Places API] Starting to fetch API key...");
         
-        // Fetch API key with retries
-        let retries = 3;
-        let apiKeyResponse = null;
-        let secretError = null;
-
-        while (retries > 0 && !apiKeyResponse) {
-          const response = await supabase.rpc('get_secret', {
-            secret_name: 'GOOGLE_PLACES_API_KEY'
-          });
-          
-          if (response.data) {
-            apiKeyResponse = response.data;
-            break;
-          }
-          
-          secretError = response.error;
-          retries--;
-          if (retries > 0) {
-            console.log(`[Places API] Retrying API key fetch. Attempts remaining: ${retries}`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+        const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
+          secret_name: 'GOOGLE_PLACES_API_KEY'
+        });
 
         if (secretError) {
           console.error("[Places API] Error fetching API key:", secretError);
           throw new Error(`Failed to fetch Google Places API key: ${secretError.message}`);
         }
 
-        if (!apiKeyResponse) {
-          console.error("[Places API] API key response is null");
+        if (!apiKey) {
+          console.error("[Places API] API key is null");
           throw new Error("Google Places API key not found in Supabase secrets");
-        }
-
-        const apiKey = apiKeyResponse as string;
-        if (!apiKey.trim()) {
-          console.error("[Places API] API key is empty");
-          throw new Error("Google Places API key is empty");
         }
 
         console.log("[Places API] Successfully retrieved API key");
