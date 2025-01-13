@@ -20,6 +20,11 @@ export const useGoogleMapsScript = () => {
 
         console.log("[Places API] Starting to fetch API key...");
         
+        // Add error handling for supabase client initialization
+        if (!supabase) {
+          throw new Error("Supabase client not initialized");
+        }
+
         const { data: apiKeyResponse, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
@@ -43,22 +48,25 @@ export const useGoogleMapsScript = () => {
         script.async = true;
         script.defer = true;
 
-        script.onload = () => {
-          console.log("[Places API] Script loaded successfully");
-          setIsScriptLoaded(true);
-          setIsLoading(false);
-          toast.success("Address autocomplete is ready!");
-        };
+        const scriptLoadPromise = new Promise((resolve, reject) => {
+          script.onload = () => {
+            console.log("[Places API] Script loaded successfully");
+            resolve(true);
+          };
 
-        script.onerror = (e) => {
-          console.error("[Places API] Script failed to load:", e);
-          setError("Failed to load Google Maps script");
-          setIsLoading(false);
-          toast.error("Failed to load address autocomplete");
-        };
+          script.onerror = (e) => {
+            console.error("[Places API] Script failed to load:", e);
+            reject(new Error("Failed to load Google Maps script"));
+          };
+        });
 
         document.head.appendChild(script);
         console.log("[Places API] Script tag added to document head");
+
+        await scriptLoadPromise;
+        setIsScriptLoaded(true);
+        setIsLoading(false);
+        toast.success("Address autocomplete is ready!");
 
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to load Google Maps";
