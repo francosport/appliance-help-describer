@@ -20,7 +20,7 @@ export const useGoogleMapsScript = () => {
 
         console.log("[Places API] Starting to fetch API key...");
         
-        const { data: apiKey, error: secretError } = await supabase.rpc('get_secret', {
+        const { data: apiKeyResponse, error: secretError } = await supabase.rpc('get_secret', {
           secret_name: 'GOOGLE_PLACES_API_KEY'
         });
 
@@ -29,11 +29,12 @@ export const useGoogleMapsScript = () => {
           throw new Error(`Failed to fetch Google Places API key: ${secretError.message}`);
         }
 
-        if (!apiKey) {
-          console.error("[Places API] API key is null");
-          throw new Error("Google Places API key not found in Supabase secrets");
+        if (!apiKeyResponse) {
+          console.error("[Places API] API key response is null");
+          throw new Error("Google Places API key not found. Please ensure it's set in Supabase secrets.");
         }
 
+        const apiKey = apiKeyResponse;
         console.log("[Places API] Successfully retrieved API key");
 
         // Create and append script
